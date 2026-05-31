@@ -1,0 +1,72 @@
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { TabBar } from 'antd-mobile'
+import { AppOutline, UnorderedListOutline, UserOutline } from 'antd-mobile-icons'
+import { ShoppingCartOutlined } from '@ant-design/icons'
+import Shop from './pages/Shop'
+import Cart from './pages/Cart'
+import Orders from './pages/Orders'
+import Profile from './pages/Profile'
+import Login from './pages/Login'
+import TableOrder from './pages/TableOrder'
+import PaySuccess from './pages/PaySuccess'
+import OrderFail from './pages/OrderFail'
+import useCartStore from './store/cartStore'
+
+const tabs = [
+  { key: '/shop', title: '点菜', icon: <AppOutline /> },
+  { key: '/orders', title: '订单', icon: <UnorderedListOutline /> },
+  {
+    key: '/cart',
+    title: '购物车',
+    // 🔥 修改这里：给图标加 id，用于飞入动画获取位置
+    icon: <span id="cart-tab"><ShoppingCartOutlined /></span>,
+    isCart: true,
+  },
+  { key: '/profile', title: '我的', icon: <UserOutline /> },
+]
+
+function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const totalCount = useCartStore(state => state.getTotalCount())
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <Routes>
+          <Route path="/" element={<Shop />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/table/:tableId" element={<TableOrder />} />
+          <Route path="/pay-success" element={<PaySuccess />} />
+          <Route path="/order-fail" element={<OrderFail />} />
+        </Routes>
+      </div>
+      <TabBar
+        activeKey={location.pathname === '/' ? '/shop' : location.pathname}
+        onChange={key => navigate(key)}
+        safeArea
+      >
+        {tabs.map(item => (
+          <TabBar.Item
+            key={item.key}
+            icon={item.icon}
+            title={item.title}
+            badge={item.isCart ? (totalCount > 0 ? totalCount : undefined) : undefined}
+          />
+        ))}
+      </TabBar>
+    </div>
+  )
+}
+
+export default function AppWrapper() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  )
+}
