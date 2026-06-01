@@ -15,7 +15,7 @@ const Orders: React.FC = () => {
       return
     }
 
-    fetch(`/api/orders?phone=${phone}`)
+    fetch(`/api/orders?phone=${encodeURIComponent(phone)}`)
       .then(res => {
         if (!res.ok) throw new Error('服务器响应错误 ' + res.status)
         return res.json()
@@ -96,7 +96,7 @@ const Orders: React.FC = () => {
             <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 12 }}>
               <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
                 <span>总金额</span>
-                <span>¥{Number(order.totalPrice).toFixed(2)}</span>
+                <span style={{ fontWeight: 'bold', color: '#FF6B00' }}>¥{Number(order.totalPrice).toFixed(2)}</span>
               </div>
               <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
                 <span>支付方式</span>
@@ -114,11 +114,31 @@ const Orders: React.FC = () => {
                   <span>{new Date(order.paid_at).toLocaleString()}</span>
                 </div>
               )}
+
               <div style={{ fontWeight: 'bold', margin: '8px 0 4px' }}>菜品清单：</div>
               {order.dishes.map((dish: any, idx: number) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span>{dish.name} x{dish.quantity}</span>
-                  <span>¥{((dish.price || 0) * (dish.quantity || 0)).toFixed(1)}</span>
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#fafafa',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    marginBottom: 6,
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 500 }}>{dish.name}</span>
+                    <span style={{ color: '#999', marginLeft: 8 }}>x{dish.quantity}</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: '#999', fontSize: 12 }}>¥{Number(dish.price).toFixed(2)}</span>
+                    <span style={{ marginLeft: 8, fontWeight: 500 }}>
+                      ¥{((Number(dish.price) || 0) * (dish.quantity || 1)).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

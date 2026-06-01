@@ -17,12 +17,11 @@ const db = mysql.createPool({
   connectionLimit: 10,
 });
 
-// ========== 登录 ==========
+// 登录
 app.post('/api/login', async (req, res) => {
   const { phone, code } = req.body;
   if (!phone || !code) return res.status(400).json({ error: '参数错误' });
   if (code !== '1234') return res.status(400).json({ error: '验证码错误（测试码1234）' });
-
   try {
     const [rows] = await db.execute('SELECT id FROM users WHERE phone = ?', [phone]);
     if (rows.length === 0) {
@@ -37,11 +36,10 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ========== 下单（绑定手机号） ==========
+// 下单（携带 phone）
 app.post('/api/order', async (req, res) => {
   const { dishes, totalPrice, payMethod, phone } = req.body;
   if (!dishes || !totalPrice || !payMethod) return res.status(400).json({ error: '缺少参数' });
-
   const orderNo = uuidv4();
   try {
     await db.execute(
@@ -56,7 +54,7 @@ app.post('/api/order', async (req, res) => {
   }
 });
 
-// ========== 模拟支付回调 ==========
+// 模拟支付回调
 app.get('/api/pay/mock', async (req, res) => {
   const { orderNo } = req.query;
   if (!orderNo) return res.status(400).send('缺少订单号');
@@ -69,7 +67,7 @@ app.get('/api/pay/mock', async (req, res) => {
   }
 });
 
-// ========== 订单列表（按手机号） ==========
+// 订单列表（按手机号）
 app.get('/api/orders', async (req, res) => {
   const { phone } = req.query;
   if (!phone) return res.json([]);
@@ -89,7 +87,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// ========== 订单状态 ==========
+// 订单状态查询
 app.get('/api/order/status', async (req, res) => {
   const { orderNo } = req.query;
   if (!orderNo) return res.status(400).json({ error: '缺少订单号' });
@@ -103,7 +101,7 @@ app.get('/api/order/status', async (req, res) => {
   }
 });
 
-// ========== 订单详情 ==========
+// 订单详情
 app.get('/api/order/detail', async (req, res) => {
   const { orderNo } = req.query;
   if (!orderNo) return res.status(400).json({ error: '缺少订单号' });
