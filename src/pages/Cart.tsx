@@ -72,19 +72,11 @@ const Cart: React.FC = () => {
             boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           }}
         >
-          {/* 菜品图片 */}
           <img
             src={item.dish.image}
-            style={{
-              width: 70,
-              height: 70,
-              borderRadius: 10,
-              objectFit: 'cover',
-              marginRight: 12,
-            }}
+            style={{ width: 70, height: 70, borderRadius: 10, objectFit: 'cover', marginRight: 12 }}
             alt=""
           />
-          {/* 菜品信息 */}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{item.dish.name}</div>
             {item.specs && (
@@ -96,7 +88,6 @@ const Cart: React.FC = () => {
               ¥{item.dish.price}
             </div>
           </div>
-          {/* 数量控制 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={() => removeFromCart(item.dish.id)}
@@ -137,7 +128,7 @@ const Cart: React.FC = () => {
         </div>
       ))}
 
-      {/* 支付方式选择 */}
+      {/* 支付方式选择：两个卡片按钮 */}
       <div style={{
         background: '#fff',
         borderRadius: 12,
@@ -146,26 +137,26 @@ const Cart: React.FC = () => {
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}>
         <div style={{ fontWeight: 500, marginBottom: 10, fontSize: 15 }}>支付方式</div>
-        <div style={{ display: 'flex', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 12 }}>
           {(['alipay', 'wechat'] as const).map(method => (
             <div
               key={method}
               onClick={() => setPayMethod(method)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 16px',
-                borderRadius: 20,
-                border: payMethod === method ? '2px solid #FF6B00' : '1px solid #ddd',
+                flex: 1,
+                padding: '12px 0',
+                borderRadius: 12,
+                border: payMethod === method ? '2px solid #FF6B00' : '1px solid #e0e0e0',
                 background: payMethod === method ? '#FFF7E6' : '#fff',
+                textAlign: 'center',
                 cursor: 'pointer',
                 fontWeight: payMethod === method ? 600 : 400,
                 color: payMethod === method ? '#FF6B00' : '#333',
-                fontSize: 14,
+                fontSize: 15,
+                transition: 'all 0.2s',
               }}
             >
-              {method === 'alipay' ? '🔵 支付宝' : '🟢 微信'}
+              {method === 'alipay' ? '支付宝' : '微信'}
             </div>
           ))}
         </div>

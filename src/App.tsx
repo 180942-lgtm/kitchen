@@ -15,12 +15,7 @@ import useCartStore from './store/cartStore'
 const tabs = [
   { key: '/shop', title: '点菜', icon: <AppOutline /> },
   { key: '/orders', title: '订单', icon: <UnorderedListOutline /> },
-  {
-    key: '/cart',
-    title: '购物车',
-    icon: <span id="cart-tab"><ShoppingCartOutlined /></span>,
-    isCart: true,
-  },
+  { key: '/cart', title: '购物车', icon: <span id="cart-tab"><ShoppingCartOutlined /></span>, isCart: true },
   { key: '/profile', title: '我的', icon: <UserOutline /> },
 ]
 
@@ -30,16 +25,14 @@ function App() {
   const totalCount = useCartStore(state => state.getTotalCount())
   const phone = localStorage.getItem('phone')
 
-  // 未登录时，所有页面都重定向到登录页（除了登录页本身）
   if (!phone && location.pathname !== '/login' && !location.pathname.startsWith('/pay-success') && !location.pathname.startsWith('/order-fail')) {
-    return (
-      <Navigate to="/login" replace />
-    )
+    return <Navigate to="/login" replace />
   }
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      {/* 内容区：无底部内边距，背景浅灰 */}
+      <div style={{ flex: 1, overflow: 'auto', background: '#f8f8f8' }}>
         <Routes>
           <Route path="/" element={<Shop />} />
           <Route path="/shop" element={<Shop />} />
@@ -52,10 +45,13 @@ function App() {
           <Route path="/order-fail" element={<OrderFail />} />
         </Routes>
       </div>
+
+      {/* 底部导航栏：高度 45px，白色，无边框 */}
       <TabBar
         activeKey={location.pathname === '/' ? '/shop' : location.pathname}
         onChange={key => navigate(key)}
-        safeArea
+        safeArea={false}
+        style={{ height: 45, background: '#fff', border: 'none', boxShadow: 'none' }}
       >
         {tabs.map(item => (
           <TabBar.Item
