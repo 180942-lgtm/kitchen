@@ -16,44 +16,16 @@ body {
   overflow-x: hidden;
 }
 
-/* 底部导航栏 */
-.adm-tab-bar {
-  height: 80px !important;
-  padding: 0 !important;
-  background: #fff !important;
-  border-top: none !important;
-  box-shadow: none !important;
-}
-
-.adm-tab-bar-item {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  height: 80px !important;
-}
-
-.adm-tab-bar-item-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1 !important;
-  margin-bottom: 0 !important;
-  height: 36px;                    /* 给大图标留足空间 */
-}
-
+/* 仅控制图标和文字大小 */
 .adm-tab-bar-item-icon .anticon,
 .adm-tab-bar-item-icon svg {
-  font-size: 30px !important;      /* 图标更大 */
-  width: 30px !important;
-  height: 30px !important;
+  font-size: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
 }
 
 .adm-tab-bar-item-title {
-  font-size: 15px !important;      /* 文字清晰 */
-  line-height: 1.4 !important;
-  margin-top: 4px !important;      /* 与图标拉开一点距离 */
+  font-size: 11px !important;
   color: #666;
 }
 

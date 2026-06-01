@@ -46,22 +46,24 @@ function App() {
         </Routes>
       </div>
 
-      {/* 底部导航栏：高度 45px，白色，无边框 */}
-      <TabBar
-        activeKey={location.pathname === '/' ? '/shop' : location.pathname}
-        onChange={key => navigate(key)}
-        safeArea={false}
-        style={{ height: 45, background: '#fff', border: 'none', boxShadow: 'none' }}
-      >
-        {tabs.map(item => (
-          <TabBar.Item
-            key={item.key}
-            icon={item.icon}
-            title={item.title}
-            badge={item.isCart ? (totalCount > 0 ? totalCount : undefined) : undefined}
-          />
-        ))}
-      </TabBar>
+      {/* 包裹一层 div，强制 45px 高度，溢出隐藏 */}
+      <div style={{ height: 45, overflow: 'hidden', background: '#fff', border: 'none' }}>
+        <TabBar
+          activeKey={location.pathname === '/' ? '/shop' : location.pathname}
+          onChange={key => navigate(key)}
+          safeArea={false}
+          style={{ height: 45 }}
+        >
+          {tabs.map(item => (
+            <TabBar.Item
+              key={item.key}
+              icon={item.icon}
+              title={item.title}
+              badge={item.isCart ? (totalCount > 0 ? totalCount : undefined) : undefined}
+            />
+          ))}
+        </TabBar>
+      </div>
     </div>
   )
 }
