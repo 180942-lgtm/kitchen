@@ -11,7 +11,7 @@ const Cart: React.FC = () => {
   const handleCheckout = async () => {
     if (items.length === 0) return
     setLoading(true)
-    const phone = localStorage.getItem('phone')
+    const phone = localStorage.getItem('phone')   // 获取登录手机号
     const dishes = items.map(item => ({
       name: item.dish.name,
       price: item.dish.price,
@@ -26,7 +26,6 @@ const Cart: React.FC = () => {
         body: JSON.stringify({ dishes, totalPrice: total, payMethod, phone }),
       })
       const data = await response.json()
-
       if (data.success && data.payUrl) {
         window.location.href = data.payUrl
       } else {
@@ -39,6 +38,7 @@ const Cart: React.FC = () => {
     }
   }
 
+  // 界面代码保持不变，省略...
   return (
     <div style={{ padding: 12, paddingBottom: 80 }}>
       <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>购物车</div>

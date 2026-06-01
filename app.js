@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 const db = mysql.createPool({
   host: '127.0.0.1',
   user: 'magic_kitchen',
-  password: 'Wmq20011004...',   // 你的真实密码
+  password: 'Wmq20011004...',   // 你的密码
   database: 'magic_kitchen',
   waitForConnections: true,
   connectionLimit: 10,
@@ -22,6 +22,7 @@ app.post('/api/login', async (req, res) => {
   const { phone, code } = req.body;
   if (!phone || !code) return res.status(400).json({ error: '参数错误' });
   if (code !== '1234') return res.status(400).json({ error: '验证码错误（测试码1234）' });
+
   try {
     const [rows] = await db.execute('SELECT id FROM users WHERE phone = ?', [phone]);
     if (rows.length === 0) {
@@ -36,10 +37,11 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 下单（携带 phone）
+// 下单
 app.post('/api/order', async (req, res) => {
   const { dishes, totalPrice, payMethod, phone } = req.body;
   if (!dishes || !totalPrice || !payMethod) return res.status(400).json({ error: '缺少参数' });
+
   const orderNo = uuidv4();
   try {
     await db.execute(
@@ -87,38 +89,6 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// 订单状态查询
-app.get('/api/order/status', async (req, res) => {
-  const { orderNo } = req.query;
-  if (!orderNo) return res.status(400).json({ error: '缺少订单号' });
-  try {
-    const [rows] = await db.execute('SELECT status FROM orders WHERE order_no = ?', [orderNo]);
-    if (rows.length === 0) return res.status(404).json({ error: '订单不存在' });
-    res.json({ status: rows[0].status });
-  } catch (err) {
-    console.error('查询状态失败:', err);
-    res.status(500).json({ error: '服务器错误' });
-  }
-});
-
-// 订单详情
-app.get('/api/order/detail', async (req, res) => {
-  const { orderNo } = req.query;
-  if (!orderNo) return res.status(400).json({ error: '缺少订单号' });
-  try {
-    const [rows] = await db.execute(
-      'SELECT order_no, total_price, status, pay_method, dishes, created_at, paid_at FROM orders WHERE order_no = ?',
-      [orderNo]
-    );
-    if (rows.length === 0) return res.status(404).json({ error: '订单不存在' });
-    const order = rows[0];
-    order.dishes = typeof order.dishes === 'string' ? JSON.parse(order.dishes) : order.dishes;
-    res.json(order);
-  } catch (err) {
-    console.error('查询详情失败:', err);
-    res.status(500).json({ error: '服务器错误' });
-  }
-});
-
+// 订单状态、详情等接口可保留...
 const PORT = 3001;
 app.listen(PORT, () => console.log(`✅ 后端运行在 http://localhost:${PORT}`));

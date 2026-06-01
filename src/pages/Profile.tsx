@@ -4,16 +4,15 @@ import { useNavigate } from 'react-router-dom'
 const Profile: React.FC = () => {
   const navigate = useNavigate()
   const phone = localStorage.getItem('phone')
-  const isLoggedIn = !!phone
 
   const handleLogout = () => {
     Dialog.confirm({
       content: '确定要退出登录吗？',
       onConfirm: () => {
-        localStorage.removeItem('phone')
-        localStorage.removeItem('token')
+        localStorage.clear()  // 清除所有登录信息
         Toast.show('已退出登录')
-        window.location.reload()
+        // 跳转到登录页并强制刷新，确保路由守卫生效
+        window.location.href = '/login'
       },
     })
   }
@@ -29,29 +28,21 @@ const Profile: React.FC = () => {
           👤
         </div>
         <div style={{ marginTop: 8, fontWeight: 'bold' }}>
-          {isLoggedIn ? phone : '未登录'}
+          {phone || '未登录'}
         </div>
       </div>
 
       <List>
-        {isLoggedIn ? (
-          <List.Item arrow onClick={handleLogout}>
-            退出登录
-          </List.Item>
-        ) : (
-          <List.Item arrow onClick={() => navigate('/login')}>
-            登录/注册
-          </List.Item>
-        )}
+        <List.Item arrow onClick={handleLogout}>
+          退出登录
+        </List.Item>
         <List.Item arrow onClick={() => navigate('/orders')}>
           我的订单
         </List.Item>
         <List.Item arrow>
           充值 (开发中)
         </List.Item>
-        <List.Item arrow onClick={() => {
-          navigate('/table/123')
-        }}>
+        <List.Item arrow onClick={() => navigate('/table/123')}>
           🍽️ 餐桌扫码点餐 (演示桌号123)
         </List.Item>
       </List>

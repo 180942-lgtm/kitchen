@@ -77,12 +77,8 @@ const Orders: React.FC = () => {
             }}
           >
             <div>
-              <div>
-                <b>订单 #{order.orderNo.slice(0, 8)}</b>
-              </div>
-              <div style={{ fontSize: 12, color: '#999' }}>
-                {order.created_at ? new Date(order.created_at).toLocaleString() : ''}
-              </div>
+              <div><b>订单 #{order.orderNo.slice(0, 8)}</b></div>
+              <div style={{ fontSize: 12, color: '#999' }}>{new Date(order.created_at).toLocaleString()}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: order.status === 'paid' ? 'green' : 'orange' }}>
@@ -100,13 +96,11 @@ const Orders: React.FC = () => {
               </div>
               <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
                 <span>支付方式</span>
-                <span>
-                  {order.payMethod === 'alipay' ? '支付宝' : order.payMethod === 'wechat' ? '微信' : order.payMethod}
-                </span>
+                <span>{order.payMethod === 'alipay' ? '支付宝' : order.payMethod === 'wechat' ? '微信' : order.payMethod}</span>
               </div>
               <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
                 <span>下单时间</span>
-                <span>{order.created_at ? new Date(order.created_at).toLocaleString() : '-'}</span>
+                <span>{new Date(order.created_at).toLocaleString()}</span>
               </div>
               {order.paid_at && (
                 <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
@@ -121,7 +115,6 @@ const Orders: React.FC = () => {
                   key={idx}
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
                     justifyContent: 'space-between',
                     background: '#fafafa',
                     borderRadius: 6,
@@ -129,16 +122,8 @@ const Orders: React.FC = () => {
                     marginBottom: 6,
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <span style={{ fontWeight: 500 }}>{dish.name}</span>
-                    <span style={{ color: '#999', marginLeft: 8 }}>x{dish.quantity}</span>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: '#999', fontSize: 12 }}>¥{Number(dish.price).toFixed(2)}</span>
-                    <span style={{ marginLeft: 8, fontWeight: 500 }}>
-                      ¥{((Number(dish.price) || 0) * (dish.quantity || 1)).toFixed(2)}
-                    </span>
-                  </div>
+                  <span>{dish.name} x{dish.quantity}</span>
+                  <span>¥{((dish.price || 0) * (dish.quantity || 1)).toFixed(2)}</span>
                 </div>
               ))}
             </div>

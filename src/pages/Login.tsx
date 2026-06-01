@@ -23,7 +23,7 @@ const Login: React.FC = () => {
         localStorage.setItem('token', data.token)
         localStorage.setItem('phone', data.phone)
         Toast.show('登录成功')
-        navigate(-1)
+        navigate('/shop', { replace: true })  // 登录后跳转点菜页
       } else {
         Toast.show(data.error || '登录失败')
       }
