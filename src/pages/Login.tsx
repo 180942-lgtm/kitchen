@@ -40,7 +40,7 @@ const Login: React.FC = () => {
           <Input placeholder='请输入手机号' value={phone} onChange={val => setPhone(val)} />
         </Form.Item>
         <Form.Item label='验证码'>
-          <Input placeholder='请输入验证码（测试码1234）' value={code} onChange={val => setCode(val)} />
+          <Input placeholder='请输入验证码' value={code} onChange={val => setCode(val)} />
         </Form.Item>
       </Form>
       <Button block color='warning' size='large' onClick={handleLogin}>登录</Button>

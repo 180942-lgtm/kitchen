@@ -13,7 +13,6 @@ const Profile: React.FC = () => {
         localStorage.removeItem('phone')
         localStorage.removeItem('token')
         Toast.show('已退出登录')
-        // 强制刷新当前页面，让状态更新
         window.location.reload()
       },
     })

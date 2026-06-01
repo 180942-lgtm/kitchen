@@ -8,7 +8,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// 数据库连接池
 const db = mysql.createPool({
   host: '127.0.0.1',
   user: 'magic_kitchen',
@@ -18,7 +17,7 @@ const db = mysql.createPool({
   connectionLimit: 10,
 });
 
-// ========== 登录接口 ==========
+// ========== 登录 ==========
 app.post('/api/login', async (req, res) => {
   const { phone, code } = req.body;
   if (!phone || !code) return res.status(400).json({ error: '参数错误' });
@@ -38,12 +37,10 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ========== 下单接口（模拟支付，绑定手机号） ==========
+// ========== 下单（绑定手机号） ==========
 app.post('/api/order', async (req, res) => {
   const { dishes, totalPrice, payMethod, phone } = req.body;
-  if (!dishes || !totalPrice || !payMethod) {
-    return res.status(400).json({ error: '缺少参数' });
-  }
+  if (!dishes || !totalPrice || !payMethod) return res.status(400).json({ error: '缺少参数' });
 
   const orderNo = uuidv4();
   try {
@@ -76,16 +73,14 @@ app.get('/api/pay/mock', async (req, res) => {
 app.get('/api/orders', async (req, res) => {
   const { phone } = req.query;
   if (!phone) return res.json([]);
-
   try {
     const [rows] = await db.execute(
       'SELECT order_no, total_price, status, pay_method, dishes, created_at, paid_at FROM orders WHERE phone = ? ORDER BY created_at DESC',
       [phone]
     );
-    // 解析 dishes JSON 字段
     const orders = rows.map(row => ({
       ...row,
-      dishes: typeof row.dishes === 'string' ? JSON.parse(row.dishes) : (row.dishes || [])
+      dishes: typeof row.dishes === 'string' ? JSON.parse(row.dishes) : (row.dishes || []),
     }));
     res.json(orders);
   } catch (err) {
@@ -94,7 +89,7 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// ========== 订单状态查询 ==========
+// ========== 订单状态 ==========
 app.get('/api/order/status', async (req, res) => {
   const { orderNo } = req.query;
   if (!orderNo) return res.status(400).json({ error: '缺少订单号' });
@@ -103,7 +98,7 @@ app.get('/api/order/status', async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ error: '订单不存在' });
     res.json({ status: rows[0].status });
   } catch (err) {
-    console.error('查询订单状态失败:', err);
+    console.error('查询状态失败:', err);
     res.status(500).json({ error: '服务器错误' });
   }
 });
@@ -122,12 +117,10 @@ app.get('/api/order/detail', async (req, res) => {
     order.dishes = typeof order.dishes === 'string' ? JSON.parse(order.dishes) : order.dishes;
     res.json(order);
   } catch (err) {
-    console.error('查询订单详情失败:', err);
+    console.error('查询详情失败:', err);
     res.status(500).json({ error: '服务器错误' });
   }
 });
 
 const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`✅ 后端运行在 http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ 后端运行在 http://localhost:${PORT}`));

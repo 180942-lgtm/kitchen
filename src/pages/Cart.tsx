@@ -11,10 +11,7 @@ const Cart: React.FC = () => {
   const handleCheckout = async () => {
     if (items.length === 0) return
     setLoading(true)
-
-    // 获取已登录手机号
     const phone = localStorage.getItem('phone')
-
     const dishes = items.map(item => ({
       name: item.dish.name,
       price: item.dish.price,
@@ -31,7 +28,6 @@ const Cart: React.FC = () => {
       const data = await response.json()
 
       if (data.success && data.payUrl) {
-        // 直接跳转（模拟支付是 /api/pay/mock 链接）
         window.location.href = data.payUrl
       } else {
         alert('下单失败：' + (data.error || '未知错误'))

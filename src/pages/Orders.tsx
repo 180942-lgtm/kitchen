@@ -10,13 +10,11 @@ const Orders: React.FC = () => {
   const phone = localStorage.getItem('phone')
 
   useEffect(() => {
-    // 未登录，跳转到登录页
     if (!phone) {
       navigate('/login')
       return
     }
 
-    // 已登录，根据手机号获取订单
     fetch(`/api/orders?phone=${phone}`)
       .then(res => {
         if (!res.ok) throw new Error('服务器响应错误 ' + res.status)
@@ -24,7 +22,6 @@ const Orders: React.FC = () => {
       })
       .then(data => {
         if (Array.isArray(data)) {
-          // 过滤掉无效数据（订单号或菜品缺失）
           const validOrders = data.filter((o: any) => o.orderNo && Array.isArray(o.dishes))
           setOrders(validOrders)
         } else {
@@ -42,7 +39,7 @@ const Orders: React.FC = () => {
     setExpandedMap(prev => ({ ...prev, [orderNo]: !prev[orderNo] }))
   }
 
-  if (!phone) return null // 等待跳转时不渲染
+  if (!phone) return null
 
   if (loading) {
     return <div style={{ padding: 20, textAlign: 'center' }}>加载中...</div>

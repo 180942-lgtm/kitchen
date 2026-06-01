@@ -18,7 +18,6 @@ const tabs = [
   {
     key: '/cart',
     title: '购物车',
-    // 🔥 修改这里：给图标加 id，用于飞入动画获取位置
     icon: <span id="cart-tab"><ShoppingCartOutlined /></span>,
     isCart: true,
   },
