@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const Orders: React.FC = () => {
+  const [rawText, setRawText] = useState('加载中...')
   const [orders, setOrders] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [expandedMap, setExpandedMap] = useState<{ [key: string]: boolean }>({})
   const navigate = useNavigate()
   const phone = localStorage.getItem('phone')
 
@@ -16,120 +14,45 @@ const Orders: React.FC = () => {
     }
 
     fetch(`/api/orders?phone=${encodeURIComponent(phone)}`)
-      .then(res => {
-        if (!res.ok) throw new Error('服务器响应错误 ' + res.status)
-        return res.json()
-      })
+      .then(res => res.json())
       .then(data => {
+        // 直接展示原始数据，不做过滤，方便你查看实际内容
         if (Array.isArray(data)) {
-          const validOrders = data.filter((o: any) => o.orderNo && Array.isArray(o.dishes))
-          setOrders(validOrders)
+          setOrders(data)
+          setRawText(`共 ${data.length} 条记录`)
         } else {
-          setError('数据格式错误')
+          setRawText('返回数据不是数组：' + JSON.stringify(data))
         }
-        setLoading(false)
       })
-      .catch(err => {
-        setError(err.message)
-        setLoading(false)
-      })
+      .catch(err => setRawText('请求失败：' + err.message))
   }, [phone, navigate])
-
-  const toggleExpand = (orderNo: string) => {
-    setExpandedMap(prev => ({ ...prev, [orderNo]: !prev[orderNo] }))
-  }
 
   if (!phone) return null
 
-  if (loading) {
-    return <div style={{ padding: 20, textAlign: 'center' }}>加载中...</div>
-  }
-
-  if (error) {
-    return <div style={{ padding: 20, textAlign: 'center', color: 'red' }}>出错了：{error}</div>
-  }
-
-  if (orders.length === 0) {
-    return <div style={{ padding: 20, textAlign: 'center' }}>暂无订单</div>
-  }
-
   return (
-    <div style={{ padding: 12, minHeight: '100vh', background: '#f8f8f8' }}>
+    <div style={{ padding: 12, background: '#f8f8f8', minHeight: '100vh' }}>
       <h3>我的订单</h3>
-      {orders.map(order => (
-        <div
-          key={order.orderNo}
-          style={{
-            background: '#fff',
-            borderRadius: 8,
-            marginBottom: 8,
-            padding: 12,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          }}
-        >
-          <div
-            onClick={() => toggleExpand(order.orderNo)}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <div>
-              <div><b>订单 #{order.orderNo.slice(0, 8)}</b></div>
-              <div style={{ fontSize: 12, color: '#999' }}>{new Date(order.created_at).toLocaleString()}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: order.status === 'paid' ? 'green' : 'orange' }}>
-                {order.status === 'paid' ? '已支付' : '待支付'}
-              </span>
-              <span>{expandedMap[order.orderNo] ? '▲' : '▼'}</span>
-            </div>
-          </div>
+      <div style={{ background: '#fff3cd', padding: 8, borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
+        {rawText}
+      </div>
 
-          {expandedMap[order.orderNo] && (
-            <div style={{ marginTop: 12, borderTop: '1px solid #eee', paddingTop: 12 }}>
-              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <span>总金额</span>
-                <span style={{ fontWeight: 'bold', color: '#FF6B00' }}>¥{Number(order.totalPrice).toFixed(2)}</span>
-              </div>
-              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <span>支付方式</span>
-                <span>{order.payMethod === 'alipay' ? '支付宝' : order.payMethod === 'wechat' ? '微信' : order.payMethod}</span>
-              </div>
-              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                <span>下单时间</span>
-                <span>{new Date(order.created_at).toLocaleString()}</span>
-              </div>
-              {order.paid_at && (
-                <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>支付时间</span>
-                  <span>{new Date(order.paid_at).toLocaleString()}</span>
-                </div>
-              )}
-
-              <div style={{ fontWeight: 'bold', margin: '8px 0 4px' }}>菜品清单：</div>
-              {order.dishes.map((dish: any, idx: number) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    background: '#fafafa',
-                    borderRadius: 6,
-                    padding: '6px 10px',
-                    marginBottom: 6,
-                  }}
-                >
-                  <span>{dish.name} x{dish.quantity}</span>
-                  <span>¥{((dish.price || 0) * (dish.quantity || 1)).toFixed(2)}</span>
-                </div>
+      {orders.length === 0 && rawText.includes('共 0 条') ? (
+        <div style={{ textAlign: 'center', padding: 20 }}>暂无订单</div>
+      ) : (
+        orders.map((order, idx) => (
+          <div key={order.orderNo || idx} style={{ background: '#fff', borderRadius: 8, padding: 12, marginBottom: 8 }}>
+            <div><b>订单 #{order.orderNo ? order.orderNo.slice(0,8) : '无号'}</b></div>
+            <div>金额：¥{order.totalPrice}</div>
+            <div>状态：{order.status}</div>
+            <div>时间：{order.created_at ? new Date(order.created_at).toLocaleString() : ''}</div>
+            <div style={{ marginTop: 8 }}>
+              {order.dishes && order.dishes.map((dish: any, i: number) => (
+                <div key={i}>{dish.name} x{dish.quantity} ¥{dish.price}</div>
               ))}
             </div>
-          )}
-        </div>
-      ))}
+          </div>
+        ))
+      )}
     </div>
   )
 }

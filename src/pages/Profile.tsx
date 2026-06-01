@@ -1,4 +1,3 @@
-import { List, Dialog, Toast } from 'antd-mobile'
 import { useNavigate } from 'react-router-dom'
 
 const Profile: React.FC = () => {
@@ -6,15 +5,9 @@ const Profile: React.FC = () => {
   const phone = localStorage.getItem('phone')
 
   const handleLogout = () => {
-    Dialog.confirm({
-      content: '确定要退出登录吗？',
-      onConfirm: () => {
-        localStorage.clear()  // 清除所有登录信息
-        Toast.show('已退出登录')
-        // 跳转到登录页并强制刷新，确保路由守卫生效
-        window.location.href = '/login'
-      },
-    })
+    localStorage.clear()
+    // 强制跳转登录页，并刷新整个应用
+    window.location.replace('/login')
   }
 
   return (
@@ -31,21 +24,30 @@ const Profile: React.FC = () => {
           {phone || '未登录'}
         </div>
       </div>
-
-      <List>
-        <List.Item arrow onClick={handleLogout}>
+      <div style={{ padding: '0 16px' }}>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '100%', padding: '12px 0', marginTop: 16,
+            background: '#ff4d4f', color: '#fff', border: 'none',
+            borderRadius: 8, fontSize: 16, fontWeight: 'bold'
+          }}
+        >
           退出登录
-        </List.Item>
-        <List.Item arrow onClick={() => navigate('/orders')}>
+        </button>
+      </div>
+      <div style={{ marginTop: 32, padding: '0 16px' }}>
+        <div style={{ fontSize: 14, color: '#666', marginBottom: 16 }}>其它功能</div>
+        <div onClick={() => navigate('/orders')} style={{ padding: '12px 0', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
           我的订单
-        </List.Item>
-        <List.Item arrow>
+        </div>
+        <div style={{ padding: '12px 0', borderBottom: '1px solid #eee', color: '#ccc' }}>
           充值 (开发中)
-        </List.Item>
-        <List.Item arrow onClick={() => navigate('/table/123')}>
+        </div>
+        <div onClick={() => navigate('/table/123')} style={{ padding: '12px 0', cursor: 'pointer' }}>
           🍽️ 餐桌扫码点餐 (演示桌号123)
-        </List.Item>
-      </List>
+        </div>
+      </div>
     </div>
   )
 }
