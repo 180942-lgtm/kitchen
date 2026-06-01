@@ -1,4 +1,3 @@
-import { Button, List, SwipeAction, Empty, Radio, Space } from 'antd-mobile'
 import { useState } from 'react'
 import useCartStore from '../store/cartStore'
 
@@ -11,7 +10,7 @@ const Cart: React.FC = () => {
   const handleCheckout = async () => {
     if (items.length === 0) return
     setLoading(true)
-    const phone = localStorage.getItem('phone')   // 获取登录手机号
+    const phone = localStorage.getItem('phone') || ''
     const dishes = items.map(item => ({
       name: item.dish.name,
       price: item.dish.price,
@@ -20,88 +19,185 @@ const Cart: React.FC = () => {
     }))
 
     try {
-      const response = await fetch('/api/order', {
+      const res = await fetch('/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dishes, totalPrice: total, payMethod, phone }),
       })
-      const data = await response.json()
+      const data = await res.json()
       if (data.success && data.payUrl) {
         window.location.href = data.payUrl
       } else {
         alert('下单失败：' + (data.error || '未知错误'))
       }
-    } catch (err) {
-      alert('网络错误，请检查连接后重试')
+    } catch {
+      alert('网络错误，请重试')
     } finally {
       setLoading(false)
     }
   }
 
-  // 界面代码保持不变，省略...
+  if (items.length === 0) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        color: '#999',
+        fontSize: 15,
+      }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>
+        <div>购物车是空的</div>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ padding: 12, paddingBottom: 80 }}>
-      <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>购物车</div>
-      {items.length === 0 ? (
-        <Empty description="购物车是空的" />
-      ) : (
-        <>
-          <List>
-            {items.map(item => (
-              <SwipeAction
-                key={item.dish.id}
-                rightActions={[{ key: 'delete', text: '删除', color: 'danger', onClick: () => removeFromCart(item.dish.id) }]}
-              >
-                <List.Item
-                  prefix={<img src={item.dish.image} style={{ width: 48, height: 48, borderRadius: 8 }} />}
-                  description={
-                    <div>
-                      <span>¥{item.dish.price}</span>
-                      {item.specs && <span style={{ marginLeft: 8, color: '#999' }}>{Object.values(item.specs).join('/')}</span>}
-                    </div>
-                  }
-                  extra={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Button size='mini' onClick={() => removeFromCart(item.dish.id)}>-</Button>
-                      <span>{item.quantity}</span>
-                      <Button size='mini' onClick={() => addToCart(item.dish, item.specs)}>+</Button>
-                    </div>
-                  }
-                >
-                  {item.dish.name}
-                </List.Item>
-              </SwipeAction>
-            ))}
-          </List>
+    <div style={{ padding: 12, paddingBottom: 100, background: '#f8f8f8', minHeight: '100vh' }}>
+      <h3 style={{ margin: '0 0 12px 0', fontSize: 18, fontWeight: 600 }}>购物车</h3>
 
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>选择支付方式：</div>
-            <Radio.Group value={payMethod} onChange={(val) => setPayMethod(val as 'alipay' | 'wechat')}>
-              <Space>
-                <Radio value="alipay">支付宝</Radio>
-                <Radio value="wechat">微信</Radio>
-              </Space>
-            </Radio.Group>
+      {/* 菜品列表 */}
+      {items.map(item => (
+        <div
+          key={item.dish.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#fff',
+            borderRadius: 12,
+            padding: 10,
+            marginBottom: 8,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}
+        >
+          {/* 菜品图片 */}
+          <img
+            src={item.dish.image}
+            style={{
+              width: 70,
+              height: 70,
+              borderRadius: 10,
+              objectFit: 'cover',
+              marginRight: 12,
+            }}
+            alt=""
+          />
+          {/* 菜品信息 */}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{item.dish.name}</div>
+            {item.specs && (
+              <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>
+                {Object.values(item.specs).join('/')}
+              </div>
+            )}
+            <div style={{ color: '#FF6B00', fontWeight: 600, fontSize: 16 }}>
+              ¥{item.dish.price}
+            </div>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, fontSize: 18, fontWeight: 'bold' }}>
-            <span>合计</span>
-            <span style={{ color: '#e94560' }}>¥{total.toFixed(2)}</span>
+          {/* 数量控制 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => removeFromCart(item.dish.id)}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                border: '1px solid #ddd',
+                background: '#fff',
+                fontSize: 16,
+                lineHeight: '28px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                color: '#666',
+              }}
+            >
+              −
+            </button>
+            <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 500 }}>{item.quantity}</span>
+            <button
+              onClick={() => addToCart(item.dish, item.specs)}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                border: 'none',
+                background: '#FF6B00',
+                color: '#fff',
+                fontSize: 16,
+                lineHeight: '28px',
+                textAlign: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              +
+            </button>
           </div>
+        </div>
+      ))}
 
-          <Button
-            color="primary"
-            block
-            size="large"
-            onClick={handleCheckout}
-            disabled={items.length === 0}
-            loading={loading}
-            style={{ borderRadius: 8 }}
-          >
-            去结算
-          </Button>
-        </>
-      )}
+      {/* 支付方式选择 */}
+      <div style={{
+        background: '#fff',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 12,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      }}>
+        <div style={{ fontWeight: 500, marginBottom: 10, fontSize: 15 }}>支付方式</div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          {(['alipay', 'wechat'] as const).map(method => (
+            <div
+              key={method}
+              onClick={() => setPayMethod(method)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: payMethod === method ? '2px solid #FF6B00' : '1px solid #ddd',
+                background: payMethod === method ? '#FFF7E6' : '#fff',
+                cursor: 'pointer',
+                fontWeight: payMethod === method ? 600 : 400,
+                color: payMethod === method ? '#FF6B00' : '#333',
+                fontSize: 14,
+              }}
+            >
+              {method === 'alipay' ? '🔵 支付宝' : '🟢 微信'}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 合计与结算 */}
+      <div style={{ marginTop: 16, background: '#fff', borderRadius: 12, padding: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 500 }}>合计</span>
+          <span style={{ color: '#FF6B00', fontSize: 20, fontWeight: 700 }}>
+            ¥{total.toFixed(2)}
+          </span>
+        </div>
+        <button
+          onClick={handleCheckout}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '12px 0',
+            background: loading ? '#ccc' : '#FF6B00',
+            border: 'none',
+            borderRadius: 25,
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 'bold',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: '0 2px 8px rgba(255,107,0,0.3)',
+          }}
+        >
+          {loading ? '处理中...' : '去结算'}
+        </button>
+      </div>
     </div>
   )
 }
