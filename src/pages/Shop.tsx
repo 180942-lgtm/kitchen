@@ -11,9 +11,9 @@ const Shop: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState(initialCategory)
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
   const contentRef = useRef<HTMLDivElement>(null)
-  const isManualScroll = useRef(false) // 手动点击导航时，暂时禁止观察器更新
+  const isManualScroll = useRef(false)
 
-  // 滚动联动：监听右侧滚动，自动高亮左侧分类
+  // IntersectionObserver：监听右侧滚动，自动高亮左侧分类
   useEffect(() => {
     const content = contentRef.current
     if (!content) return
@@ -33,7 +33,6 @@ const Shop: React.FC = () => {
       { root: content, threshold: 0.3 }
     )
 
-    // 观察每个分类的标题元素
     Object.values(categoryRefs.current).forEach((el) => {
       if (el) observer.observe(el)
     })
@@ -41,17 +40,17 @@ const Shop: React.FC = () => {
     return () => observer.disconnect()
   }, [])
 
-  // 手动点击左侧导航，滚动到对应分类
+  // 点击左侧导航，手动滚动到对应分类
   const handleCategoryClick = (catName: string) => {
     isManualScroll.current = true
     setActiveCategory(catName)
     categoryRefs.current[catName]?.scrollIntoView({ behavior: 'smooth' })
     setTimeout(() => {
       isManualScroll.current = false
-    }, 800) // 动画结束后重新开启观察
+    }, 800)
   }
 
-  // 计算每个分类的 Top 排名集合
+  // 获取每个分类的 Top 排名
   const getTopDishIds = (dishes: Dish[], topN: number): Set<string> => {
     const sorted = [...dishes].sort((a, b) => (b.monthSales || 0) - (a.monthSales || 0))
     return new Set(sorted.slice(0, topN).map(d => d.id))
@@ -88,7 +87,6 @@ const Shop: React.FC = () => {
         {/* 右侧菜品列表 */}
         <div ref={contentRef} style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
           {categories.map(cat => {
-            // 按销量降序排列，这样 Top1 就在最前面
             const sortedDishes = [...cat.dishes].sort((a, b) => (b.monthSales || 0) - (a.monthSales || 0))
             const topN = sortedDishes.length >= 8 ? 5 : 3
             const topIds = getTopDishIds(sortedDishes, topN)
