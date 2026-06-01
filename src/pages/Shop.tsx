@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { categories } from '../data/menu'
 import ShopHeader from '../components/ShopHeader'
@@ -13,44 +13,62 @@ const Shop: React.FC = () => {
   const contentRef = useRef<HTMLDivElement>(null)
   const isManualScroll = useRef(false)
 
-  // IntersectionObserver：监听右侧滚动，自动高亮左侧分类
+  // 根据滚动位置计算当前应该高亮的分类
+  const updateActiveCategory = useCallback(() => {
+    if (isManualScroll.current) return
+
+    const content = contentRef.current
+    if (!content) return
+
+    const containerTop = content.getBoundingClientRect().top
+    let currentCat = categories[0]?.name || ''
+
+    // 找到第一个顶部超出容器顶部的分类标题，其前一个分类就是当前所在
+    for (let i = categories.length - 1; i >= 0; i--) {
+      const catName = categories[i].name
+      const el = categoryRefs.current[catName]
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        // 元素顶部 <= 容器顶部 + 50px（留一点偏移）即认为进入了视口
+        if (rect.top <= containerTop + 50) {
+          currentCat = catName
+          break
+        }
+      }
+    }
+
+    setActiveCategory(currentCat)
+  }, [])
+
   useEffect(() => {
     const content = contentRef.current
     if (!content) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isManualScroll.current) return
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.target instanceof HTMLElement) {
-            const catName = entry.target.dataset.category
-            if (catName) {
-              setActiveCategory(catName)
-            }
-          }
-        })
-      },
-      { root: content, threshold: 0.3 }
-    )
+    const handleScroll = () => {
+      updateActiveCategory()
+    }
 
-    Object.values(categoryRefs.current).forEach((el) => {
-      if (el) observer.observe(el)
-    })
-
-    return () => observer.disconnect()
-  }, [])
+    content.addEventListener('scroll', handleScroll, { passive: true })
+    return () => content.removeEventListener('scroll', handleScroll)
+  }, [updateActiveCategory])
 
   // 点击左侧导航，手动滚动到对应分类
   const handleCategoryClick = (catName: string) => {
     isManualScroll.current = true
     setActiveCategory(catName)
-    categoryRefs.current[catName]?.scrollIntoView({ behavior: 'smooth' })
+    const el = categoryRefs.current[catName]
+    if (el && contentRef.current) {
+      // 计算相对滚动位置
+      const containerTop = contentRef.current.getBoundingClientRect().top
+      const elTop = el.getBoundingClientRect().top
+      const offset = elTop - containerTop + contentRef.current.scrollTop - 10
+      contentRef.current.scrollTo({ top: offset, behavior: 'smooth' })
+    }
     setTimeout(() => {
       isManualScroll.current = false
     }, 800)
   }
 
-  // 获取每个分类的 Top 排名
   const getTopDishIds = (dishes: Dish[], topN: number): Set<string> => {
     const sorted = [...dishes].sort((a, b) => (b.monthSales || 0) - (a.monthSales || 0))
     return new Set(sorted.slice(0, topN).map(d => d.id))
@@ -94,7 +112,6 @@ const Shop: React.FC = () => {
               <div
                 key={cat.name}
                 ref={el => { categoryRefs.current[cat.name] = el }}
-                data-category={cat.name}
               >
                 <div style={{ fontSize: 15, fontWeight: 'bold', padding: '8px 0' }}>{cat.name}</div>
                 {sortedDishes.map(dish => {
