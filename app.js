@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -17,94 +18,98 @@ const db = mysql.createPool({
   password: 'Wmq20011004...',   // 👈 你的真实密码
   database: 'magic_kitchen',
   waitForConnections: true,
+const express = require('express');
+const mysql = require('mysql2/promise');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
+const fs = require('fs');
+const querystring = require('querystring');
+
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+const db = mysql.createPool({
+  host: '127.0.0.1',
+  user: 'magic_kitchen',
+  password: 'Wmq20011004...',   // 你的真实密码
+  database: 'magic_kitchen',
+  waitForConnections: true,
   connectionLimit: 10,
 });
 
-// ==================== 核心配置 ====================
-const USE_REAL_ALIPAY = true;                    // 真实支付宝开启
-const SERVER_HOST = 'http://47.103.21.131';      // 通过 Nginx 代理，无需端口
-const SECRET_KEY = 'magic_kitchen_pay_2025';     // 模拟支付密钥
+// ========== 核心配置 ==========
+const USE_REAL_ALIPAY = true;
+const SERVER_HOST = 'http://47.103.21.131';   // 不带端口，Nginx 代理
+const ALIPAY_APP_ID = '9021000164632391';
+const ALIPAY_GATEWAY = 'https://openapi-sandbox.dl.alipaydev.com/gateway.do';
 
-// 支付宝沙箱配置（已修正 APPID、网关）
-const ALIPAY_APP_ID = '9021000164632391';                             // ✅ 你的沙箱 APPID
-const ALIPAY_GATEWAY = 'https://openapi-sandbox.dl.alipaydev.com/gateway.do'; // ✅ 正确沙箱网关
+// 读取私钥
+const privateKey = fs.readFileSync(__dirname + '/private_key.pem', 'utf8');
 
-// 私钥（真实支付时需要）
-const ALIPAY_PRIVATE_KEY = (() => {
-  if (!USE_REAL_ALIPAY) return '';
-  try {
-    return require('fs').readFileSync(__dirname + '/private_key.pem', 'ascii');
-  } catch {
-    console.error('⚠️ 缺少 private_key.pem，真实支付无法工作');
-    return '';
-  }
-})();
+// 支付宝沙箱的 AES 密钥（从你的开发设置中获取）
+const AES_KEY = 'F9Pdp1q/iEFoLnl3/yuapw==';
 
-// ==================== 工具函数 ====================
-// 生成北京时间格式的时间戳（yyyy-MM-dd HH:mm:ss）
-function getBeijingTime() {
-  const now = new Date();
-  const offset = 8; // 东八区
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const beijing = new Date(utc + (3600000 * offset));
-  const year = beijing.getFullYear();
-  const month = String(beijing.getMonth() + 1).padStart(2, '0');
-  const day = String(beijing.getDate()).padStart(2, '0');
-  const hours = String(beijing.getHours()).padStart(2, '0');
-  const minutes = String(beijing.getMinutes()).padStart(2, '0');
-  const seconds = String(beijing.getSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+// AES-128-ECB 加密函数
+function aesEncrypt(data, key) {
+  const cipher = crypto.createCipheriv('aes-128-ecb', Buffer.from(key, 'base64'), null);
+  cipher.setAutoPadding(true);
+  return Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]).toString('base64');
 }
 
-// 模拟支付签名（HMAC-SHA256）
-function generatePaySign(orderNo, timestamp) {
-  const hmac = crypto.createHmac('sha256', SECRET_KEY);
-  hmac.update(`${orderNo}:${timestamp}`);
-  return hmac.digest('hex');
+function rsaSign(data) {
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(data, 'utf8');
+  return sign.sign(privateKey, 'base64');
 }
 
-function verifyPaySign(orderNo, timestamp, sign) {
-  if (Date.now() - Number(timestamp) > 5 * 60 * 1000) return false;
-  return generatePaySign(orderNo, timestamp) === sign;
+function getAlipayTime() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-// 构建支付宝支付 URL（修正时间戳格式）
-function buildAlipayUrl(orderNo, totalAmount) {
+function createPayUrl(orderNo, totalAmount) {
+  // 业务参数原文
   const bizContent = JSON.stringify({
-    subject: '魔法小厨房点餐',
     out_trade_no: orderNo,
-    total_amount: totalAmount,
+    total_amount: Number(totalAmount).toFixed(2),
+    subject: '魔法小厨房点餐',
     product_code: 'QUICK_WAP_WAY',
     quit_url: `${SERVER_HOST}/order-fail?orderNo=${orderNo}`,
   });
 
+  // 对 biz_content 进行 AES 加密
+  const encryptedBiz = aesEncrypt(bizContent, AES_KEY);
+
   const params = {
     app_id: ALIPAY_APP_ID,
-    method: 'alipay.trade.wap.pay',
+    biz_content: encryptedBiz,         // 使用加密后的值
     charset: 'utf-8',
-    sign_type: 'RSA2',
-    timestamp: getBeijingTime(),               // ✅ 修正时间戳格式
-    version: '1.0',
+    method: 'alipay.trade.wap.pay',
     notify_url: `${SERVER_HOST}/api/pay/notify/alipay`,
     return_url: `${SERVER_HOST}/pay-success?orderNo=${orderNo}`,
-    biz_content: bizContent,
+    sign_type: 'RSA2',
+    timestamp: getAlipayTime(),
+    version: '1.0',
+    encrypt_type: 'AES',              // 告诉网关已加密
   };
 
-  // RSA-SHA256 签名
-  const signer = crypto.createSign('RSA-SHA256');
   const sortedKeys = Object.keys(params).sort();
-  signer.update(sortedKeys.map(k => `${k}=${params[k]}`).join('&'));
-  params.sign = signer.sign(ALIPAY_PRIVATE_KEY, 'base64');
+  const signStr = sortedKeys.map(key => `${key}=${params[key]}`).join('&');
+  params.sign = rsaSign(signStr);
 
-  const query = new URLSearchParams(params).toString();
-  return `${ALIPAY_GATEWAY}?${query}`;
+  return ALIPAY_GATEWAY + '?' + querystring.stringify(params);
 }
 
-// ==================== 登录 ====================
+// ========== 登录 ==========
 app.post('/api/login', async (req, res) => {
   const { phone, code } = req.body;
-  if (!phone || !code) return res.status(400).json({ error: '参数错误' });
-  if (code !== '1234') return res.status(400).json({ error: '验证码错误（测试码1234）' });
+  if (!phone || !code) return res.json({ success: false, error: '参数错误' });
+  if (code !== '1234') return res.json({ success: false, error: '验证码错误' });
   try {
     const [rows] = await db.execute('SELECT id FROM users WHERE phone = ?', [phone]);
     if (rows.length === 0) await db.execute('INSERT INTO users (phone) VALUES (?)', [phone]);
@@ -112,15 +117,14 @@ app.post('/api/login', async (req, res) => {
     await db.execute('UPDATE users SET token = ? WHERE phone = ?', [token, phone]);
     res.json({ success: true, token, phone });
   } catch (err) {
-    console.error('登录失败:', err);
-    res.status(500).json({ error: '服务器错误' });
+    res.json({ success: false, error: '登录失败' });
   }
 });
 
-// ==================== 下单 ====================
+// ========== 下单 ==========
 app.post('/api/order', async (req, res) => {
   const { dishes, totalPrice, payMethod, phone } = req.body;
-  if (!dishes || !totalPrice || !payMethod) return res.status(400).json({ error: '缺少参数' });
+  if (!dishes || !totalPrice || !payMethod) return res.json({ success: false, error: '缺少参数' });
 
   const orderNo = uuidv4();
   try {
@@ -129,74 +133,60 @@ app.post('/api/order', async (req, res) => {
       [orderNo, totalPrice, payMethod, phone || null, JSON.stringify(dishes)]
     );
 
-    let payUrl;
-    if (payMethod === 'alipay' && USE_REAL_ALIPAY && ALIPAY_PRIVATE_KEY) {
-      payUrl = buildAlipayUrl(orderNo, totalPrice.toFixed(2));
+    let payUrl = '';
+    if (payMethod === 'alipay' && USE_REAL_ALIPAY) {
+      payUrl = createPayUrl(orderNo, totalPrice);
     } else {
+      // 安全模拟支付
       const timestamp = Date.now();
-      const sign = generatePaySign(orderNo, timestamp);
-      payUrl = `${SERVER_HOST}/api/pay/mock?orderNo=${orderNo}&timestamp=${timestamp}&sign=${sign}`;
+      const sign = crypto.createHmac('sha256', 'magic_key')
+        .update(`${orderNo}_${timestamp}`)
+        .digest('hex');
+      payUrl = `${SERVER_HOST}/api/pay/mock?orderNo=${orderNo}&t=${timestamp}&sign=${sign}`;
     }
+
     res.json({ success: true, orderNo, payUrl });
   } catch (err) {
     console.error('下单失败:', err);
-    res.status(500).json({ error: '下单失败' });
+    res.json({ success: false, error: '下单失败' });
   }
 });
 
-// ==================== 安全模拟支付（仅模拟时使用） ====================
+// ========== 安全模拟支付 ==========
 app.get('/api/pay/mock', async (req, res) => {
-  const { orderNo, timestamp, sign } = req.query;
-  if (!orderNo || !timestamp || !sign) return res.status(400).send('参数错误');
-  if (!verifyPaySign(orderNo, timestamp, sign)) return res.status(403).send('请求无效或已过期');
-
-  try {
-    const [orders] = await db.execute('SELECT status FROM orders WHERE order_no = ?', [orderNo]);
-    if (orders.length === 0) return res.status(404).send('订单不存在');
-    if (orders[0].status === 'paid') return res.redirect(`${SERVER_HOST}/pay-success?orderNo=${orderNo}&repeat=1`);
-    await db.execute('UPDATE orders SET status = ?, paid_at = NOW() WHERE order_no = ?', ['paid', orderNo]);
-    res.redirect(`${SERVER_HOST}/pay-success?orderNo=${orderNo}`);
-  } catch (err) {
-    console.error('支付处理失败:', err);
-    res.status(500).send('服务器错误');
+  const { orderNo, t, sign } = req.query;
+  const checkSign = crypto.createHmac('sha256', 'magic_key')
+    .update(`${orderNo}_${t}`)
+    .digest('hex');
+  if (checkSign !== sign || Date.now() - Number(t) > 5 * 60 * 1000) {
+    return res.send('无效请求');
   }
+
+  await db.execute('UPDATE orders SET status = "paid", paid_at = NOW() WHERE order_no = ?', [orderNo]);
+  res.redirect(`${SERVER_HOST}/pay-success?orderNo=${orderNo}`);
 });
 
-// ==================== 支付宝异步通知 ====================
-app.post('/api/pay/notify/alipay', async (req, res) => {
-  const { out_trade_no, trade_status } = req.body;
-  if (trade_status === 'TRADE_SUCCESS') {
-    await db.execute('UPDATE orders SET status = ?, paid_at = NOW() WHERE order_no = ?', ['paid', out_trade_no]);
+// ========== 支付宝异步通知 ==========
+app.post('/api/pay/notify/alipay', (req, res) => {
+  if (req.body.trade_status === 'TRADE_SUCCESS') {
+    db.execute('UPDATE orders SET status = "paid", paid_at = NOW() WHERE order_no = ?', [req.body.out_trade_no]);
   }
   res.send('success');
 });
 
-// ==================== 订单列表（安全解析） ====================
+// ========== 订单列表 ==========
 app.get('/api/orders', async (req, res) => {
   const { phone } = req.query;
   if (!phone) return res.json([]);
-  try {
-    const [rows] = await db.execute(
-      'SELECT order_no, total_price, status, pay_method, dishes, created_at, paid_at FROM orders WHERE phone = ? ORDER BY created_at DESC',
-      [phone]
-    );
-    const orders = Array.isArray(rows) ? rows.map(row => ({
-      ...row,
-      dishes: (() => {
-        try {
-          return typeof row.dishes === 'string' ? JSON.parse(row.dishes) : (row.dishes || []);
-        } catch { return []; }
-      })()
-    })) : [];
-    res.json(orders);
-  } catch (err) {
-    console.error('订单查询失败:', err);
-    res.status(500).json({ error: '服务器错误' });
-  }
+  const [rows] = await db.execute('SELECT * FROM orders WHERE phone = ? ORDER BY created_at DESC', [phone]);
+  res.json(rows.map(row => ({
+    ...row,
+    dishes: JSON.parse(row.dishes || '[]')
+  })));
 });
 
 const PORT = 3001;
 app.listen(PORT, () => {
-  console.log(`✅ 后端运行在 http://localhost:${PORT}`);
-  console.log(`✅ 真实支付宝状态：${USE_REAL_ALIPAY ? '开启' : '关闭'}`);
+  console.log(`✅ 服务运行在 http://0.0.0.0:${PORT}`);
+  console.log(`✅ 支付宝沙箱配置：APPID=${ALIPAY_APP_ID}，已开启AES加密`);
 });
